@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>Talabalar hujjatlari</title>
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f5f5;
+            padding: 40px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        label {
+            font-weight: bold;
+            margin-top: 15px;
+            display: block;
+        }
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        .success {
+            color: green;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            margin-top: 20px;
+        }
+        .download {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .download a {
+            text-decoration: none;
+            background: #007bff;
+            padding: 10px 15px;
+            color: white;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Talabalar hujjatlarini yuklash</h2>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label>Talabalar fayli (.xlsx yoki .docx):</label>
+        <input type="file" name="file" accept=".xlsx,.docx" required>
+
+        <label>Kursni tanlang:</label>
+        <select name="course" required>
+            <option value="">-- Kursni tanlang --</option>
+            <option value="3">3-kurs</option>
+            <option value="4">4-kurs</option>
+        </select>
+
+        <label for="start_date">Amaliyot boshlanish sanasi:</label>
+        <input type="date" name="start_date" required>
+
+        <label for="end_date">Amaliyot tugash sanasi:</label>
+        <input type="date" name="end_date" required>
+
+        <button type="submit">Yuklash</button>
+    </form>
+
+    {% if uploaded %}
+        <p class="success">Ma'lumotlar muvaffaqiyatli yuklandi.</p>
+        <div class="download">
+            <a href="{% url 'export_all_documents_zip' %}">Hujjatlarni yuklab olish</a>
+        </div>
+    {% endif %}
+
+    {% if error %}
+        <p class="error">{{ error }}</p>
+    {% endif %}
+</div>
+</body>
+</html>
