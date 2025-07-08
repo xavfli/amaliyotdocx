@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <script src="{% static 'js/script.js' %}" defer></script>
 </head>
-<body>
+<body class="{% if request.COOKIES.theme == 'dark' %}dark{% endif %}">
     <header>
         <nav class="navbar">
             <div class="navbar-left">
@@ -23,8 +23,8 @@
                 <div class="dropdown">
                     <button class="dropbtn">👤 Profil ▾</button>
                     <div class="dropdown-content">
-                        <a href="#">Profil</a>
-                        <a href="#">Akkount sozlamalar</a>
+                        <a href="{% url 'profile' %}">Profil</a>
+                        <a href="{% url 'account_settings' %}">Akkount sozlamalar</a>
                         <a href="{% url 'pay_view' %}">To‘lovlar</a>
                         <a href="#" onclick="toggleDarkMode()">🌙 Tungi rejim</a>
                         <a href="{% url 'balance' %}">➕ Balansni to‘ldirish</a>

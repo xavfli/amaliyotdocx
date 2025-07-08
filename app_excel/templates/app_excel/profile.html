@@ -1,0 +1,12 @@
+{% extends "app_excel/base.html" %}
+{% block title %}Profil{% endblock %}
+{% block content %}
+<div class="container py-5">
+    <h2>👤 Profil Ma'lumotlari</h2>
+    <ul>
+        <li><strong>Foydalanuvchi nomi:</strong> {{ user.username }}</li>
+        <li><strong>Email:</strong> {{ user.email|default:"Yo‘q" }}</li>
+        <li><strong>Balans:</strong> {{ profile.balance }} so‘m</li>
+    </ul>
+</div>
+{% endblock %}

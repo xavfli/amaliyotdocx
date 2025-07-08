@@ -29,5 +29,8 @@ urlpatterns = [
     path('payment/callback/', views.payment_callback, name='payment_callback'),
 
     path('balance/', views.balance_view, name='balance'),
+    path('profile/', views.profile_view, name='profile'),
+    path('settings/', views.account_settings_view, name='account_settings'),
+
 
 ]

@@ -409,11 +409,10 @@ def register_view(request):
         else:
             user = User.objects.create_user(username=username, password=password1)
 
-            messages.success(request, "Ro‘yxatdan o‘tish muvaffaqiyatli. Endi tizimga kiring.")
+            messages.success(request, "Muvaffaqiyatli ro‘yxatdan o‘tildi.")
             return redirect("login")
 
     return render(request, "app_excel/register.html")
-
 
 
 def logout_view(request):
@@ -559,3 +558,19 @@ def top_up_balance(request):
 @login_required
 def balance_view(request):
     return render(request, 'balance.html')
+
+
+
+@login_required(login_url='login')
+def profile_view(request):
+    return render(request, 'app_excel/profile.html', {
+        'user': request.user,
+        'profile': request.user.profile
+    })
+
+
+@login_required(login_url='login')
+def account_settings_view(request):
+    return render(request, 'app_excel/account_settings.html', {
+        'user': request.user
+    })
