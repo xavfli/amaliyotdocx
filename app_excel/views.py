@@ -1,11 +1,10 @@
 from docx import Document
 from docxtpl import DocxTemplate
 import openpyxl
-from django.http import HttpResponse
-from .models import Student
-import io, os, zipfile
+from django.http import HttpResponse, JsonResponse, FileResponse
+from .models import Student, Payment
+import io, os, zipfile, uuid
 from django.conf import settings
-from django.urls import reverse
 from datetime import datetime
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
@@ -17,6 +16,13 @@ from rest_framework import viewsets
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+from django.views.decorators.csrf import csrf_exempt
+
+
+
+
+
+
 
 
 class StudentListCreateAPIView(APIView):
@@ -192,109 +198,18 @@ def upload_excel(request):
 
 
 @login_required(login_url='login')
-def export_all_documents_zip(request):
-    students = Student.objects.all()
-    if not students.exists():
-        return HttpResponse("Hali hech qanday talaba ma'lumotlari mavjud emas.")
-
-
-    course = int(request.session.get("course", 4))
-    start_date_str = request.session.get("start_date", "2025-02-17")
-    end_date_str = request.session.get("end_date", "2025-04-26")
-
-
-    OY_NOMLARI = {
-        "January": "yanvar", "February": "fevral", "March": "mart",
-        "April": "aprel", "May": "may", "June": "iyun", "July": "iyul",
-        "August": "avgust", "September": "sentabr", "October": "oktabr",
-        "November": "noyabr", "December": "dekabr"
-    }
-
-    start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
-    end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
-
-    start_oy = OY_NOMLARI[start_date.strftime("%B")]
-    end_oy = OY_NOMLARI[end_date.strftime("%B")]
-
-    formatted_start = f"{start_date.year}-yil «{start_date.day:02}» {start_oy}"
-    formatted_end = f"{end_date.year}-yil «{end_date.day:02}» {end_oy}"
-
-
-    practice_type = "Ishlab chiqarish amaliyoti" if course == 3 else "Bitiruv oldi amaliyoti"
-
-
-    shartnoma_path = os.path.join(settings.BASE_DIR, 'app_excel', 'templates', 'app_excel', 'shartnoma_template.docx')
-    kundalik_path = os.path.join(settings.BASE_DIR, 'app_excel', 'templates', 'app_excel', 'kundalik_template.docx')
-    yollanma_path = os.path.join(settings.BASE_DIR, 'app_excel', 'templates', 'app_excel', 'yollanma_template.docx')
-
-
-    zip_buffer = io.BytesIO()
-
-    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
-        for index, student in enumerate(students, start=1):
-            folder_name = f"Hujjatlar/{index}"
-            context = {
-                'FULL_NAME': student.full_name,
-                'GROUP': student.group,
-                'COMPANY': student.company,
-                'ADDRESS': student.company_address,
-                'DIRECTOR': student.company_director,
-                'PHONE': student.company_phone,
-                'SUPERVISOR': student.practice_supervisor,
-                'FACULTY': student.faculty,
-                'COURSE': course,
-                'PRACTICE_TYPE': practice_type,
-                'STUDENT_COUNT': 1,
-                'START_DATE': formatted_start,
-                'END_DATE': formatted_end,
-            }
-
-
-            doc_shart = DocxTemplate(shartnoma_path)
-            doc_shart.render(context)
-            io_shart = io.BytesIO()
-            doc_shart.save(io_shart)
-            io_shart.seek(0)
-            zip_file.writestr(f"{folder_name}/shartnoma.docx", io_shart.read())
-
-
-            doc_kundalik = DocxTemplate(kundalik_path)
-            doc_kundalik.render(context)
-            io_kundalik = io.BytesIO()
-            doc_kundalik.save(io_kundalik)
-            io_kundalik.seek(0)
-            zip_file.writestr(f"{folder_name}/kundalik.docx", io_kundalik.read())
-
-
-            doc_yollanma = DocxTemplate(yollanma_path)
-            doc_yollanma.render(context)
-            io_yollanma = io.BytesIO()
-            doc_yollanma.save(io_yollanma)
-            io_yollanma.seek(0)
-            zip_file.writestr(f"{folder_name}/yollanma.docx", io_yollanma.read())
-
-    Student.objects.all().delete()
-
-    zip_buffer.seek(0)
-    response = HttpResponse(zip_buffer, content_type='application/zip')
-    response['Content-Disposition'] = 'attachment; filename=Hujjatlar.zip'
-    return response
-
-
-
-@login_required(login_url='login')
 def export_to_word(request):
     students = Student.objects.all()
     if not students.exists():
         return HttpResponse("Hali hech qanday talaba ma'lumotlari mavjud emas.")
 
     course = int(request.GET.get("course", 4))
-    start_date_str = request.GET.get("start_date")  # foydalanuvchidan kelgan sana
-    formatted_start = format_uzbek_date(start_date_str)
-
     practice_type = "Ishlab chiqarish amaliyoti" if course == 3 else "Bitiruv oldi amaliyoti"
     student_count = students.count()
     first_student = students.first()
+
+    start_date_str = request.session.get("start_date", "2025-02-17")
+    formatted_start = format_uzbek_date(start_date_str)
 
     doc_path = os.path.join(settings.BASE_DIR, 'app_excel', 'templates', 'app_excel', 'shartnoma_template.docx')
     doc = DocxTemplate(doc_path)
@@ -325,6 +240,106 @@ def export_to_word(request):
     )
     response['Content-Disposition'] = f'attachment; filename="{first_student.company.replace(" ", "_")}_shartnoma.docx"'
     return response
+
+
+
+
+@login_required(login_url='login')
+def export_all_documents_zip(request):
+    user_profile = request.user.profile
+    narx = 30000  # hujjatlarni yuklab olish narxi
+
+    # Mablag' yetarli emas
+    if user_profile.balance < narx:
+        return HttpResponse("❌ Hisobingizda yetarli mablag‘ mavjud emas.")
+
+    students = Student.objects.all()
+    if not students.exists():
+        return HttpResponse("❌ Talabalar ma'lumotlari topilmadi.")
+
+    # Foydalanuvchi kiritgan session ma'lumotlari
+    course = int(request.session.get("course", 4))
+    start_date_str = request.session.get("start_date", "2025-02-17")
+    end_date_str = request.session.get("end_date", "2025-04-26")
+
+    # O'zbekcha oylar
+    OY_NOMLARI = {
+        "January": "yanvar", "February": "fevral", "March": "mart",
+        "April": "aprel", "May": "may", "June": "iyun", "July": "iyul",
+        "August": "avgust", "September": "sentabr", "October": "oktabr",
+        "November": "noyabr", "December": "dekabr"
+    }
+
+
+    start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+    end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
+    formatted_start = f"{start_date.year}-yil «{start_date.day:02}» {OY_NOMLARI[start_date.strftime('%B')]}"
+    formatted_end = f"{end_date.year}-yil «{end_date.day:02}» {OY_NOMLARI[end_date.strftime('%B')]}"
+    student_count = students.count()
+
+    practice_type = "Ishlab chiqarish amaliyoti" if course == 3 else "Bitiruv oldi amaliyoti"
+
+
+    base_path = os.path.join(settings.BASE_DIR, 'app_excel', 'templates', 'app_excel')
+    shartnoma_tpl = os.path.join(base_path, 'shartnoma_template.docx')
+    kundalik_tpl = os.path.join(base_path, 'kundalik_template.docx')
+    yollanma_tpl = os.path.join(base_path, 'yollanma_template.docx')
+
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        for index, student in enumerate(students, start=1):
+            folder = f"Hujjatlar/{index}"
+            context = {
+                'FULL_NAME': student.full_name,
+                'GROUP': student.group,
+                'COMPANY': student.company,
+                'ADDRESS': student.company_address,
+                'DIRECTOR': student.company_director,
+                'PHONE': student.company_phone,
+                'SUPERVISOR': student.practice_supervisor,
+                'FACULTY': student.faculty,
+                'COURSE': course,
+                'PRACTICE_TYPE': practice_type,
+                'STUDENT_COUNT': student_count,
+                'START_DATE': formatted_start,
+                'END_DATE': formatted_end,
+            }
+
+
+            doc1 = DocxTemplate(shartnoma_tpl)
+            doc1.render(context)
+            io1 = io.BytesIO()
+            doc1.save(io1)
+            io1.seek(0)
+            zip_file.writestr(f"{folder}/shartnoma.docx", io1.read())
+
+
+            doc2 = DocxTemplate(kundalik_tpl)
+            doc2.render(context)
+            io2 = io.BytesIO()
+            doc2.save(io2)
+            io2.seek(0)
+            zip_file.writestr(f"{folder}/kundalik.docx", io2.read())
+
+
+            doc3 = DocxTemplate(yollanma_tpl)
+            doc3.render(context)
+            io3 = io.BytesIO()
+            doc3.save(io3)
+            io3.seek(0)
+            zip_file.writestr(f"{folder}/yollanma.docx", io3.read())
+
+    user_profile.balance -= narx
+    user_profile.save()
+
+    Student.objects.all().delete()
+
+    zip_buffer.seek(0)
+    response = HttpResponse(zip_buffer, content_type='application/zip')
+    response['Content-Disposition'] = 'attachment; filename=Hujjatlar.zip'
+    return response
+
 
 
 @login_required(login_url='login')
@@ -374,7 +389,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
-            return redirect("upload_excel")  # Asosiy sahifaga yo'naltirish
+            return redirect("upload_excel")
         else:
             messages.error(request, "Login yoki parol noto'g'ri!")
 
@@ -402,3 +417,143 @@ def register_view(request):
 def logout_view(request):
     logout(request)
     return redirect("login")
+
+
+@login_required(login_url='login')
+def pay_view(request):
+    user = request.user
+    amount = 30000
+    merchant_id = '123456'
+    service_id = '654321'
+    callback_url = 'http://127.0.0.1:8000/payment/callback/'
+
+    merchant_trans_id = str(uuid.uuid4())
+
+    payment = Payment.objects.create(
+        user=user,
+        amount=amount,
+        merchant_trans_id=merchant_trans_id,
+        status='pending'  # optional
+    )
+
+    context = {
+        'payment': payment,
+        'merchant_id': merchant_id,
+        'service_id': service_id,
+        'amount': amount,
+        'merchant_trans_id': merchant_trans_id,
+        'callback_url': callback_url,
+    }
+
+    return render(request, 'app_excel/pay.html', {
+        'payment': payment,
+        'merchant_id': 'YOUR_MERCHANT_ID',
+        'service_id': 'YOUR_SERVICE_ID',
+        'amount': amount,
+    })
+
+
+@csrf_exempt
+def click_prepare(request):
+    return JsonResponse({'error': 0, 'error_note': 'Success'})
+
+
+@csrf_exempt
+def click_result(request):
+    merchant_trans_id = request.POST.get("merchant_trans_id")
+    click_trans_id = request.POST.get("click_trans_id")
+
+    try:
+        payment = Payment.objects.get(merchant_trans_id=merchant_trans_id)
+
+        if not payment.paid:
+            payment.paid = True
+            payment.click_trans_id = click_trans_id
+            payment.save()
+
+            zip_buffer = generate_documents_zip()
+
+            response = HttpResponse(zip_buffer, content_type='application/zip')
+            response['Content-Disposition'] = f'attachment; filename=hujjatlar.zip'
+            return response
+
+        return JsonResponse({'error': 0, 'error_note': 'To‘lov avval amalga oshirilgan'})
+    except Payment.DoesNotExist:
+        return JsonResponse({'error': -5, 'error_note': 'To‘lov topilmadi'})
+
+
+
+def generate_documents_zip():
+    students = Student.objects.all()
+    course = 4
+    practice_type = "Bitiruv oldi amaliyoti"
+
+    start_date = datetime(2025, 2, 17)
+    end_date = datetime(2025, 4, 26)
+
+    formatted_start = f"{start_date.year}-yil «{start_date.day}» fevral"
+    formatted_end = f"{end_date.year}-yil «{end_date.day}» aprel"
+
+    shartnoma_path = os.path.join(settings.BASE_DIR, 'app_excel/templates/app_excel/shartnoma_template.docx')
+    kundalik_path = os.path.join(settings.BASE_DIR, 'app_excel/templates/app_excel/kundalik_template.docx')
+    yollanma_path = os.path.join(settings.BASE_DIR, 'app_excel/templates/app_excel/yollanma_template.docx')
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w") as zip_file:
+        for index, student in enumerate(students, start=1):
+            context = {
+                'FULL_NAME': student.full_name,
+                'GROUP': student.group,
+                'COMPANY': student.company,
+                'ADDRESS': student.company_address,
+                'DIRECTOR': student.company_director,
+                'PHONE': student.company_phone,
+                'SUPERVISOR': student.practice_supervisor,
+                'FACULTY': student.faculty,
+                'COURSE': course,
+                'PRACTICE_TYPE': practice_type,
+                'START_DATE': formatted_start,
+                'END_DATE': formatted_end,
+            }
+
+            folder = f"Hujjatlar/{index}"
+
+            for tpl_path, name in [(shartnoma_path, "shartnoma"), (kundalik_path, "kundalik"), (yollanma_path, "yollanma")]:
+                tpl = DocxTemplate(tpl_path)
+                tpl.render(context)
+                io_doc = io.BytesIO()
+                tpl.save(io_doc)
+                io_doc.seek(0)
+                zip_file.writestr(f"{folder}/{name}.docx", io_doc.read())
+
+    zip_buffer.seek(0)
+    return zip_buffer
+
+
+@csrf_exempt
+def payment_callback(request):
+    if request.method == "POST" or request.method == "GET":
+
+        request.session['paid'] = True
+
+        return redirect('export_all_documents_zip')
+
+    return HttpResponse("To‘lov bekor qilindi yoki noto‘g‘ri so‘rov!", status=400)
+
+
+
+@login_required
+def top_up_balance(request):
+    if request.method == "POST":
+        amount = int(request.POST.get("amount", 0))
+        profile = request.user.profile
+        profile.balance += amount
+        profile.save()
+        return redirect('top_up_balance')
+
+    return render(request, 'balance.html')
+
+
+@login_required
+def balance_view(request):
+    return render(request, 'balance.html')

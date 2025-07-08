@@ -1,0 +1,49 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}AmaliyotDocx{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="{% static 'js/script.js' %}" defer></script>
+</head>
+<body>
+    <header>
+        <nav class="navbar">
+            <div class="navbar-left">
+                <a href="{% url 'upload_excel' %}" class="logo">📁 Hujjatlar</a>
+            </div>
+
+            {% if user.is_authenticated %}
+            <div class="navbar-right">
+                <span class="user-info">
+                    👤 {{ user.username }} | 💰 {{ user.profile.balance|default:0 }} so'm
+                </span>
+
+                <div class="dropdown">
+                    <button class="dropbtn">👤 Profil ▾</button>
+                    <div class="dropdown-content">
+                        <a href="#">Profil</a>
+                        <a href="#">Akkount sozlamalar</a>
+                        <a href="{% url 'pay_view' %}">To‘lovlar</a>
+                        <a href="#" onclick="toggleDarkMode()">🌙 Tungi rejim</a>
+                        <a href="{% url 'balance' %}">➕ Balansni to‘ldirish</a>
+                        <a href="{% url 'logout' %}">🚪 Chiqish</a>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+                <div class="navbar-right">
+                    <a href="{% url 'login' %}">Kirish</a> |
+                    <a href="{% url 'register' %}">Ro‘yxatdan o‘tish</a>
+                </div>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main>
+        {% block content %}
+        {% endblock %}
+    </main>
+</body>
+</html>
