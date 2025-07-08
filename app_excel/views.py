@@ -407,11 +407,13 @@ def register_view(request):
         elif User.objects.filter(username=username).exists():
             messages.error(request, "Bu login allaqachon mavjud!")
         else:
-            User.objects.create_user(username=username, password=password1)
-            messages.success(request, "Muvaffaqiyatli ro‘yxatdan o‘tildi. Endi kirishingiz mumkin.")
+            user = User.objects.create_user(username=username, password=password1)
+
+            messages.success(request, "Ro‘yxatdan o‘tish muvaffaqiyatli. Endi tizimga kiring.")
             return redirect("login")
 
     return render(request, "app_excel/register.html")
+
 
 
 def logout_view(request):
