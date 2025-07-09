@@ -23,8 +23,6 @@ from django.views.decorators.csrf import csrf_exempt
 
 
 
-
-
 class StudentListCreateAPIView(APIView):
     def get(self, request):
         students = Student.objects.all()
@@ -396,6 +394,7 @@ def login_view(request):
     return render(request, "app_excel/login.html")
 
 
+@csrf_exempt
 def register_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
