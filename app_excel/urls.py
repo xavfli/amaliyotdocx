@@ -2,6 +2,7 @@ from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
 from .views import StudentViewSet, StudentListCreateAPIView, StudentRetrieveUpdateDestroyAPIView
+from rest_framework.authtoken.views import obtain_auth_token
 
 
 router = DefaultRouter()
@@ -9,6 +10,7 @@ router.register('students', StudentViewSet, basename='student')
 
 urlpatterns = [
     path('api/', include(router.urls)),
+    path('api/token/', obtain_auth_token, name='api_token_auth'),
 
     path('upload/', views.upload_excel, name='upload_excel'),
     path('export/', views.export_all_documents_zip, name='export_all_documents_zip'),
