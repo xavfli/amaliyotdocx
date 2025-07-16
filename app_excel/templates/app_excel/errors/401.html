@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="error-container" style="text-align: center; padding: 60px;">
+  <h1 style="font-size: 72px; color: orange;">401</h1>
+  <h2>🔒 Kirish mumkin emas</h2>
+  <p>Sizga bu sahifani ko‘rish huquqi berilmagan yoki login qilmagansiz.</p>
+
+  <div style="margin-top: 30px;">
+    <a href="{% url 'login' %}" class="btn btn-primary">🔐 Kirish</a>
+    <a href="/" class="btn btn-secondary">🏠 Bosh sahifaga</a>
+  </div>
+</div>
+{% endblock %}

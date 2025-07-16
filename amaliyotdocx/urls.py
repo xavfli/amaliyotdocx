@@ -25,3 +25,8 @@ urlpatterns = [
     path('shartnoma/', include('app_shartnoma.urls')),
 ]
 
+
+handler401 = 'app_excel.views.handler401'
+handler403 = 'app_excel.views.handler403'
+handler404 = 'app_excel.views.handler404'
+handler500 = 'app_excel.views.handler500'

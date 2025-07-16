@@ -2,6 +2,7 @@ from docx import Document
 from docxtpl import DocxTemplate
 import openpyxl
 from django.http import HttpResponse, JsonResponse, FileResponse
+from rest_framework.decorators import api_view
 from .models import Student, Payment
 import io, os, zipfile, uuid
 from django.conf import settings
@@ -17,7 +18,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
-
+from rest_framework.authtoken.models import Token
 
 
 
@@ -379,17 +380,25 @@ def generate_contract_for_company(request, company_name):
     return response
 
 
+
 def login_view(request):
     if request.method == "POST":
         username = request.POST.get("username")
         password = request.POST.get("password")
+        remember = request.POST.get("remember")
 
         user = authenticate(request, username=username, password=password)
         if user:
             login(request, user)
+
+            if remember:
+                request.session.set_expiry(31536000)
+            else:
+                request.session.set_expiry(0)
+
             return redirect("upload_excel")
         else:
-            messages.error(request, "Login yoki parol noto'g'ri!")
+            messages.error(request, " Login yoki parol noto‘g‘ri.")
 
     return render(request, "app_excel/login.html")
 
@@ -573,3 +582,37 @@ def account_settings_view(request):
     return render(request, 'app_excel/account_settings.html', {
         'user': request.user
     })
+
+
+
+@api_view(['POST'])
+def custom_login_api(request):
+    username = request.data.get("username")
+    password = request.data.get("password")
+
+    user = authenticate(username=username, password=password)
+    if user:
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({"token": token.key, "username": user.username})
+    return Response({"error": "Login yoki parol noto‘g‘ri"}, status=400)
+
+
+
+def custom_401_view(request, exception=None):
+    return render(request, 'errors/401.html', status=401)
+
+def custom_404_view(request, exception=None):
+    return render(request, 'errors/404.html', status=404)
+
+def custom_500_view(request):
+    return render(request, 'errors/500.html', status=500)
+
+def csrf_failure(request, reason=""):
+    return render(request, 'errors/403_csrf.html', status=403)
+
+
+
+
+
+
+

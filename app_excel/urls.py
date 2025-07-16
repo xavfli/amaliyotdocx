@@ -36,3 +36,11 @@ urlpatterns = [
 
 
 ]
+
+
+
+handler401 = 'app_excel.views.custom_401_view'
+handler403 = 'app_excel.views.csrf_failure'
+handler404 = 'app_excel.views.custom_404_view'
+handler500 = 'app_excel.views.custom_500_view'
+

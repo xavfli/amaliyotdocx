@@ -27,7 +27,7 @@ SECRET_KEY = 'django-insecure-b6hv(b=y6+b*iohifb$me$2k&=&bl^hwb2d3wrwcu6@z)qa$1e
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['.onrender.com', '127.0.0.1']
+ALLOWED_HOSTS = ['.onrender.com', '127.0.0.1', 'localhost']
 
 
 
@@ -84,6 +84,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            'debug': DEBUG,
         },
     },
 ]
@@ -162,3 +163,31 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ]
 }
+
+
+
+CSRF_FAILURE_VIEW = 'app_excel.views.csrf_failure_view'
+
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+SESSION_COOKIE_AGE = 60 * 60 * 24 * 365  # 1 yil eslab qolish
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
