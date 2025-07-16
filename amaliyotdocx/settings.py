@@ -166,7 +166,7 @@ REST_FRAMEWORK = {
 
 
 
-CSRF_FAILURE_VIEW = 'app_excel.views.csrf_failure_view'
+CSRF_FAILURE_VIEW = 'app_excel.views.csrf_failure'
 
 
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
