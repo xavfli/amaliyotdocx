@@ -4,12 +4,12 @@ from django.contrib.auth import get_user_model
 class Command(BaseCommand):
     def handle(self, *args, **options):
         User = get_user_model()
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser(
-                username='VOID',
-                email='asad2001psabirov@gmail.com',
-                password='2001'
-            )
-            self.stdout.write(self.style.SUCCESS('✅ Superuser yaratildi'))
-        else:
-            self.stdout.write(self.style.WARNING('ℹ️ Superuser allaqachon mavjud'))
+        admin_username = 'admin'
+        if User.objects.filter(username=admin_username).exists():
+            User.objects.filter(username=admin_username).delete()
+        User.objects.create_superuser(
+            username=admin_username,
+            email='admin@example.com',
+            password='1'
+        )
+        self.stdout.write("✅ Admin foydalanuvchi yaratildi.")
