@@ -152,10 +152,3 @@ Agar loyiha sizga foydali bo‘lsa:
 xush kelibsiz!
 
 
-
-
-
----
-
-Agar sizga `requirements.txt` yoki `API dokumentatsiyasi` ham kerak bo‘lsa, bemalol ayting — tayyorlab beraman.
-
