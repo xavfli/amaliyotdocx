@@ -4,6 +4,10 @@ AmaliyotDocx — bu Django asosida ishlab chiqilgan veb-loyiha bo‘lib, u orqal
 
 ---
 
+Loyiha test sifatida ishlayapti: https://boburbek.onrender.com 
+
+---
+
 ## 🚀 Loyihaning asosiy imkoniyatlari
 
 ✅ Excel (`.xlsx`) yoki Word (`.docx`) fayli orqali talabalar ro‘yxatini yuklash  
